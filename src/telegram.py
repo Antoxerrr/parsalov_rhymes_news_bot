@@ -2,8 +2,8 @@ import requests
 
 from settings import TELEGRAM_BOT_TOKEN
 
-# TELEGRAM_CHAT_ID = '-1002172002211'
-TELEGRAM_CHAT_ID = '-5006656044'  # test
+TELEGRAM_CHAT_ID = '-1002172002211'
+# TELEGRAM_CHAT_ID = '-5006656044'  # test
 
 def send_to_telegram(text_to_send):
     url = f'https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage'

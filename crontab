@@ -1,5 +1,5 @@
 # Каждый день в 12:00 и 19:00 по Владивостоку (02:00 и 09:00 UTC)
-# 0 2,9 * * * cd /app && /usr/local/bin/python /app/src/run.py > /proc/1/fd/1 2>/proc/1/fd/2
+0 2,9 * * * cd /app && /usr/local/bin/python /app/src/run.py > /proc/1/fd/1 2>/proc/1/fd/2
 
 # Для теста
-* * * * * cd /app && /usr/local/bin/python /app/src/run.py > /proc/1/fd/1 2>/proc/1/fd/2
+# * * * * * cd /app && /usr/local/bin/python /app/src/run.py > /proc/1/fd/1 2>/proc/1/fd/2
