@@ -79,7 +79,7 @@ def _strip_command(text):
 
 
 def _is_command_text(text):
-    return bool(text and text.strip().startswith("/"))
+    return text and text.strip().startswith("/")
 
 
 def _parse_command(text):
@@ -144,6 +144,10 @@ def main():
     generator = PostGenerator(use_vk_parser=False)
     offset = None
     chat_history = {}
+    print(
+        "ℹ️ Listener started. "
+        f"interject_p={INTERJECT_PROBABILITY}, history={CHAT_HISTORY_SIZE}"
+    )
 
     while True:
         try:
@@ -162,7 +166,7 @@ def main():
                         model_name = args if args.lower() not in {"", "default", "reset"} else None
                         generator.set_model_override(model_name)
                         active_model = generator.model_override or generator.default_model
-                        print("AAAA")
+                        print(f"ℹ️ Model updated: {active_model}")
                         send_to_telegram_chat(
                             f"✅ Модель обновлена: {active_model}",
                             message["chat_id"],
@@ -189,19 +193,22 @@ def main():
                 )
                 author = _format_author(message["from_user"])
                 history.append(f"{author}: {_sanitize_message(text)}")
+                print(f"ℹ️ History updated chat={chat_id} size={len(history)}")
 
                 if len(history) < MIN_HISTORY_FOR_INTERJECT:
                     print("ℹ️ Skip interject: not enough history")
                     continue
                 roll = random.random()
+                print(f"ℹ️ Interject roll={roll:.3f} p={INTERJECT_PROBABILITY}")
                 if roll > INTERJECT_PROBABILITY:
-                    print(f"ℹ️ Skip interject: roll={roll:.3f}")
+                    print("ℹ️ Skip interject: roll too high")
                     continue
 
                 recent_messages = "\n".join(history)
                 prompt = _build_chat_interject_prompt(recent_messages)
                 reply = generator._generate_post_from_prompt(prompt)
                 if reply:
+                    print(f"✅ Interjecting chat={chat_id}")
                     send_to_telegram_chat(reply, chat_id)
         except Exception as exc:
             print(f"❌ Ошибка в listener: {exc}")
