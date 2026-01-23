@@ -2,3 +2,7 @@ services:
   bot:
     build: .
     restart: unless-stopped
+  listener:
+    build: .
+    restart: unless-stopped
+    command: ["python", "/app/src/telegram_listener.py"]

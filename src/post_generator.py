@@ -9,18 +9,22 @@ UNSUCCESSFUL_GENERATION_TEXT = "я не могу обсуждать эту те�
 
 class PostGenerator:
 
-    def __init__(self):
+    def __init__(self, use_vk_parser=True):
         self.openai = OpenAI(
             api_key=YANDEX_CLOUD_API_KEY,
             base_url="https://llm.api.cloud.yandex.net/v1",
             project=YANDEX_CLOUD_FOLDER
         )
-        self.vk_parser = VKParser()
+        self.vk_parser = VKParser() if use_vk_parser else None
 
     def _generate_post(self):
+        if self.vk_parser is None:
+            raise RuntimeError("VK parser is disabled for this generator")
         original_post = self.vk_parser.choose_post()
         prompt = PROMPT.format(original_post=original_post)
+        return self._generate_post_from_prompt(prompt)
 
+    def _generate_post_from_prompt(self, prompt):
         response = self.openai.chat.completions.create(
             model=f"gpt://{YANDEX_CLOUD_FOLDER}/yandexgpt/rc",
             messages=[
