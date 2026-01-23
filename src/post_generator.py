@@ -25,7 +25,7 @@ class PostGenerator:
 
     def _generate_post_from_prompt(self, prompt):
         response = self.openai.chat.completions.create(
-            model="x-ai/grok-code-fast-1",
+            model="openai/gpt-oss-120b",
             messages=[
                 {"role": "user", "content": prompt}
             ],
