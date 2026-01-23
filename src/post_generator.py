@@ -1,3 +1,5 @@
+import base64
+
 from openai import OpenAI
 
 from settings import YANDEX_CLOUD_API_KEY, YANDEX_CLOUD_FOLDER
@@ -42,6 +44,15 @@ class PostGenerator:
 
     def set_model_override(self, model_name):
         self.model_override = model_name or None
+
+    def generate_image(self, prompt, model="google/gemini-2.5-flash-image"):
+        response = self.openai.images.generate(
+            model=model,
+            prompt=prompt,
+            response_format="b64_json",
+        )
+        image_b64 = response.data[0].b64_json
+        return base64.b64decode(image_b64)
 
     def generate(self):
         while True:

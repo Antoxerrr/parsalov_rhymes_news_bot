@@ -6,11 +6,12 @@ import requests
 
 from post_generator import PostGenerator
 from settings import TELEGRAM_BOT_TOKEN
-from telegram import send_to_telegram_chat
+from telegram import send_photo_to_telegram_chat, send_to_telegram_chat
 
 
 TRIGGER_COMMAND = "/valek"
 MODEL_COMMAND = "/model"
+IMAGE_COMMAND = "/vi"
 POLL_TIMEOUT_SECONDS = 30
 RETRY_DELAY_SECONDS = 2
 CHAT_HISTORY_SIZE = 15
@@ -24,6 +25,15 @@ CHAT_INTERJECT_PROMPT = """
 
 Последние сообщения:
 {recent_messages}
+"""
+
+IMAGE_PROMPT = """
+Сделай абсурдную, яркую, слегка токсичную иллюстрацию на тему Валька.
+Валёк — обычный человек, не музыкант. Атмосфера: кринж, сарказм, таблоидный абсурд.
+Сюжет бери из запроса пользователя, но добавь нелепую деталь, чтобы было смешно.
+
+Запрос пользователя:
+{user_message}
 """
 
 PROMPT = """
@@ -107,6 +117,11 @@ def _build_chat_interject_prompt(recent_messages):
     return CHAT_INTERJECT_PROMPT.format(recent_messages=recent_messages)
 
 
+def _build_image_prompt(user_message):
+    safe_message = user_message or "Валёк в нелепой жизненной ситуации."
+    return IMAGE_PROMPT.format(user_message=safe_message)
+
+
 def _get_updates(offset):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates"
     payload = {
@@ -171,6 +186,17 @@ def main():
                             message["chat_id"],
                             reply_to_message_id=message["message_id"],
                         )
+                        continue
+                    if command == IMAGE_COMMAND:
+                        user_message = args
+                        image_prompt = _build_image_prompt(user_message)
+                        image_bytes = generator.generate_image(image_prompt)
+                        if image_bytes:
+                            send_photo_to_telegram_chat(
+                                image_bytes,
+                                message["chat_id"],
+                                reply_to_message_id=message["message_id"],
+                            )
                         continue
                     if command == TRIGGER_COMMAND:
                         user_message = args
