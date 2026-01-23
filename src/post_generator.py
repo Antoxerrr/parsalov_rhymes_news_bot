@@ -9,7 +9,7 @@ UNSUCCESSFUL_GENERATION_TEXT = "я не могу обсуждать эту те�
 
 class PostGenerator:
 
-    def __init__(self, use_vk_parser=True, default_model="z-ai/glm-4.6"):
+    def __init__(self, use_vk_parser=True, default_model="x-ai/grok-code-fast-1"):
         self.openai = OpenAI(
             api_key=YANDEX_CLOUD_API_KEY,
             base_url="https://api.vsellm.ru/v1",

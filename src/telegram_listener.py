@@ -1,4 +1,6 @@
+import random
 import time
+from collections import deque
 
 import requests
 
@@ -11,6 +13,18 @@ TRIGGER_COMMAND = "/valek"
 MODEL_COMMAND = "/model"
 POLL_TIMEOUT_SECONDS = 30
 RETRY_DELAY_SECONDS = 2
+CHAT_HISTORY_SIZE = 12
+INTERJECT_PROBABILITY = 0.05
+MIN_HISTORY_FOR_INTERJECT = 4
+
+CHAT_INTERJECT_PROMPT = """
+Ты - участник телеграм чата. Просмотри последние сообщения чата, попытайся уловить тему и осмысленно
+"вклиниться" в диалог. Последние сообщения чата будут приведены ниже в формате "user_name: message".
+Отвечай "по настроению". Можешь ответить нейтрально, шутливо, или грубовато.
+
+Последние сообщения:
+{recent_messages}
+"""
 
 PROMPT = """
 Ты — язвительный токсичный тролль, рвёшь всех короткими саркастичными роастами с поворотом.
@@ -64,8 +78,33 @@ def _strip_command(text):
     return parts[1].strip()
 
 
+def _is_command_text(text):
+    return bool(text and text.strip().startswith("/"))
+
+
 def _parse_command(text):
     return _normalize_command(text), _strip_command(text)
+
+
+def _format_author(from_user):
+    username = from_user.get("username")
+    if username:
+        return username
+    first_name = from_user.get("first_name")
+    last_name = from_user.get("last_name")
+    if first_name and last_name:
+        return f"{first_name} {last_name}"
+    if first_name:
+        return first_name
+    return "unknown"
+
+
+def _sanitize_message(text):
+    return " ".join(text.split())
+
+
+def _build_chat_interject_prompt(recent_messages):
+    return CHAT_INTERJECT_PROMPT.format(recent_messages=recent_messages)
 
 
 def _get_updates(offset):
@@ -96,12 +135,15 @@ def _extract_message(update):
         "text": text,
         "message_id": message.get("message_id"),
         "username": from_user.get("username"),
+        "from_user": from_user,
+        "is_bot": from_user.get("is_bot", False),
     }
 
 
 def main():
     generator = PostGenerator(use_vk_parser=False)
     offset = None
+    chat_history = {}
 
     while True:
         try:
@@ -111,28 +153,53 @@ def main():
                 message = _extract_message(update)
                 if not message:
                     continue
-                command, args = _parse_command(message["text"])
-                if command == MODEL_COMMAND:
-                    model_name = args if args.lower() not in {"", "default", "reset"} else None
-                    generator.set_model_override(model_name)
-                    active_model = generator.model_override or generator.default_model
-                    send_to_telegram_chat(
-                        f"✅ Модель обновлена: {active_model}",
-                        message["chat_id"],
-                        reply_to_message_id=message["message_id"],
-                    )
+                if message.get("is_bot"):
                     continue
-                if command != TRIGGER_COMMAND:
+                text = message["text"]
+                if _is_command_text(text):
+                    command, args = _parse_command(text)
+                    if command == MODEL_COMMAND:
+                        model_name = args if args.lower() not in {"", "default", "reset"} else None
+                        generator.set_model_override(model_name)
+                        active_model = generator.model_override or generator.default_model
+                        print("AAAA")
+                        send_to_telegram_chat(
+                            f"✅ Модель обновлена: {active_model}",
+                            message["chat_id"],
+                            reply_to_message_id=message["message_id"],
+                        )
+                        continue
+                    if command == TRIGGER_COMMAND:
+                        user_message = args
+                        prompt = _build_prompt(user_message, message.get("username"))
+                        reply = generator._generate_post_from_prompt(prompt)
+                        if reply:
+                            send_to_telegram_chat(
+                                reply,
+                                message["chat_id"],
+                                reply_to_message_id=message["message_id"],
+                            )
+                        continue
                     continue
-                user_message = args
-                prompt = _build_prompt(user_message, message.get("username"))
+
+                chat_id = message["chat_id"]
+                history = chat_history.setdefault(
+                    chat_id,
+                    deque(maxlen=CHAT_HISTORY_SIZE),
+                )
+                author = _format_author(message["from_user"])
+                history.append(f"{author}: {_sanitize_message(text)}")
+
+                if len(history) < MIN_HISTORY_FOR_INTERJECT:
+                    continue
+                if random.random() > INTERJECT_PROBABILITY:
+                    continue
+
+                recent_messages = "\n".join(history)
+                prompt = _build_chat_interject_prompt(recent_messages)
                 reply = generator._generate_post_from_prompt(prompt)
                 if reply:
-                    send_to_telegram_chat(
-                        reply,
-                        message["chat_id"],
-                        reply_to_message_id=message["message_id"],
-                    )
+                    send_to_telegram_chat(reply, chat_id)
         except Exception as exc:
             print(f"❌ Ошибка в listener: {exc}")
             time.sleep(RETRY_DELAY_SECONDS)
