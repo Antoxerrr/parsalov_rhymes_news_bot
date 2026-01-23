@@ -12,8 +12,7 @@ class PostGenerator:
     def __init__(self, use_vk_parser=True):
         self.openai = OpenAI(
             api_key=YANDEX_CLOUD_API_KEY,
-            base_url="https://llm.api.cloud.yandex.net/v1",
-            project=YANDEX_CLOUD_FOLDER
+            base_url="https://api.vsellm.ru/v1",
         )
         self.vk_parser = VKParser() if use_vk_parser else None
 
@@ -26,7 +25,7 @@ class PostGenerator:
 
     def _generate_post_from_prompt(self, prompt):
         response = self.openai.chat.completions.create(
-            model=f"gpt://{YANDEX_CLOUD_FOLDER}/yandexgpt/rc",
+            model="x-ai/grok-code-fast-1",
             messages=[
                 {"role": "user", "content": prompt}
             ],
@@ -51,8 +50,8 @@ PROMPT = """
 *   **ВАЖНО:** Валёк НЕ имеет НИКАКОГО отношения к музыке. Он НЕ рэпер, НЕ пишет песен, НЕ снимает клипов, НЕ выступает. Он — обычный человек.
 
 ### ЗАДАНИЕ:
-Напиши новость на 2-3 абзаца, относительно оригинального поста. Оригинальный пост будет указан ниже. 
-Важно - не нужно полностью копировать новость, заменяя имена в посте на имя Валька. 
+Напиши новость на 2-3 абзаца, относительно оригинального поста. Оригинальный пост будет указан ниже.
+Важно - не нужно полностью копировать новость, заменяя имена в посте на имя Валька.
 Используй пост как основу для вдохновения. Также допускается копировать стилистику написания из оригинального поста.
 Новость обязательно должна быть абсурдной, словно текст писал сумасшедший, помешанный на теориях заговора человек.
 
