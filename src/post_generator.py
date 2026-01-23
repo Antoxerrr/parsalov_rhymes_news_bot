@@ -9,12 +9,14 @@ UNSUCCESSFUL_GENERATION_TEXT = "я не могу обсуждать эту те�
 
 class PostGenerator:
 
-    def __init__(self, use_vk_parser=True):
+    def __init__(self, use_vk_parser=True, default_model="z-ai/glm-4.6"):
         self.openai = OpenAI(
             api_key=YANDEX_CLOUD_API_KEY,
             base_url="https://api.vsellm.ru/v1",
         )
         self.vk_parser = VKParser() if use_vk_parser else None
+        self.default_model = default_model
+        self.model_override = None
 
     def _generate_post(self):
         if self.vk_parser is None:
@@ -25,7 +27,7 @@ class PostGenerator:
 
     def _generate_post_from_prompt(self, prompt):
         response = self.openai.chat.completions.create(
-            model="z-ai/glm-4.6",
+            model=self._resolve_model(),
             messages=[
                 {"role": "user", "content": prompt}
             ],
@@ -34,6 +36,12 @@ class PostGenerator:
         )
 
         return response.choices[0].message.content
+
+    def _resolve_model(self):
+        return self.model_override or self.default_model
+
+    def set_model_override(self, model_name):
+        self.model_override = model_name or None
 
     def generate(self):
         while True:

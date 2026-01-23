@@ -8,6 +8,7 @@ from telegram import send_to_telegram_chat
 
 
 TRIGGER_COMMAND = "/valek"
+MODEL_COMMAND = "/model"
 POLL_TIMEOUT_SECONDS = 30
 RETRY_DELAY_SECONDS = 2
 
@@ -63,6 +64,10 @@ def _strip_command(text):
     return parts[1].strip()
 
 
+def _parse_command(text):
+    return _normalize_command(text), _strip_command(text)
+
+
 def _get_updates(offset):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates"
     payload = {
@@ -106,9 +111,20 @@ def main():
                 message = _extract_message(update)
                 if not message:
                     continue
-                if _normalize_command(message["text"]) != TRIGGER_COMMAND:
+                command, args = _parse_command(message["text"])
+                if command == MODEL_COMMAND:
+                    model_name = args if args.lower() not in {"", "default", "reset"} else None
+                    generator.set_model_override(model_name)
+                    active_model = generator.model_override or generator.default_model
+                    send_to_telegram_chat(
+                        f"✅ Модель обновлена: {active_model}",
+                        message["chat_id"],
+                        reply_to_message_id=message["message_id"],
+                    )
                     continue
-                user_message = _strip_command(message["text"])
+                if command != TRIGGER_COMMAND:
+                    continue
+                user_message = args
                 prompt = _build_prompt(user_message, message.get("username"))
                 reply = generator._generate_post_from_prompt(prompt)
                 if reply:
