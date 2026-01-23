@@ -17,6 +17,7 @@ RETRY_DELAY_SECONDS = 2
 CHAT_HISTORY_SIZE = 15
 INTERJECT_PROBABILITY = 0.07
 MIN_HISTORY_FOR_INTERJECT = 4
+IMAGE_COOLDOWN_SECONDS = 300
 
 CHAT_INTERJECT_PROMPT = """
 Ты - участник телеграм чата. Просмотри последние сообщения чата, попытайся уловить тему и осмысленно
@@ -159,6 +160,7 @@ def main():
     generator = PostGenerator(use_vk_parser=False)
     offset = None
     chat_history = {}
+    last_image_ts = 0.0
     print(
         "ℹ️ Listener started. "
         f"interject_p={INTERJECT_PROBABILITY}, history={CHAT_HISTORY_SIZE}"
@@ -188,10 +190,19 @@ def main():
                         )
                         continue
                     if command == IMAGE_COMMAND:
+                        now = time.time()
+                        if now - last_image_ts < IMAGE_COOLDOWN_SECONDS:
+                            send_to_telegram_chat(
+                                "Иди нахуй, это дорого, погоди чуток",
+                                message["chat_id"],
+                                reply_to_message_id=message["message_id"],
+                            )
+                            continue
                         user_message = args
                         image_prompt = _build_image_prompt(user_message)
                         image_bytes = generator.generate_image(image_prompt)
                         if image_bytes:
+                            last_image_ts = now
                             send_photo_to_telegram_chat(
                                 image_bytes,
                                 message["chat_id"],
