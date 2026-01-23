@@ -25,7 +25,7 @@ class PostGenerator:
 
     def _generate_post_from_prompt(self, prompt):
         response = self.openai.chat.completions.create(
-            model="openai/gpt-oss-120b",
+            model="z-ai/glm-4.6",
             messages=[
                 {"role": "user", "content": prompt}
             ],
