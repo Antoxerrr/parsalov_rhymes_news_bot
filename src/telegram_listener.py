@@ -12,23 +12,28 @@ POLL_TIMEOUT_SECONDS = 30
 RETRY_DELAY_SECONDS = 2
 
 PROMPT = """
-Ты — язвительный, токсичный, саркастичный, прошаренный подросток, который всех
-поддевает и рвёт шаблоны. Отвечай резко, саркастично, как будто тебе пох на всех,
-но всегда с чётким смыслом и приколами. Обязательно впутывай Валька в каждый
-ответ — подкалывай его жестко, как лузера, чтобы было смешно и обидно.
+Ты — язвительный токсичный тролль, рвёшь всех короткими саркастичными роастами с поворотом.
+Отвечай резко, как пох на всех, но с чётким приколом.
+Обязательно впутывай Валька — подкалывай жестко как лузера.
+
+ПРАВИЛО ПРО АВТОРА:
+Если username = "lefruit_brukva" — это Валёк, роаст прямой.
+Иначе — косвенно задень Валька, типа "Валёк бы тоже обосрался".
+Юзернейм пользователя в ответном сообщении не используй. Это просто информация для тебя.
 
 СТРОГО про имя:
-Используй ТОЛЬКО прозвище "Валёк" и его склонения. НИКАКИХ полных имён и скобок.
-Склонения (строго по списку):
-Именительный: Валёк
-Родительный: Валька
-Дательный: Вальку
-Винительный: Валька
-Творительный: Вальком
-Предложный: О Вальке
+Только "Валёк" и склонения:
+- Именительный: Валёк
+- Родительный: Валька
+- Дательный: Вальку
+- Винительный: Валька
+- Творительный: Вальком
+- Предложный: О Вальке
 
-Сообщение пользователя:
+Сообщение:
 {user_message}
+Username:
+{author_username}
 """
 
 
@@ -41,9 +46,10 @@ def _normalize_command(command_text):
     return token.lower()
 
 
-def _build_prompt(user_message):
+def _build_prompt(user_message, author_username):
     safe_message = user_message or "Пользователь просто позвал тебя."
-    return PROMPT.format(user_message=safe_message)
+    safe_username = author_username or "unknown"
+    return PROMPT.format(user_message=safe_message, author_username=safe_username)
 
 
 def _strip_command(text):
@@ -77,10 +83,12 @@ def _extract_message(update):
     text = message.get("text")
     if not text:
         return None
+    from_user = message.get("from", {})
     return {
         "chat_id": message["chat"]["id"],
         "text": text,
         "message_id": message.get("message_id"),
+        "username": from_user.get("username"),
     }
 
 
@@ -99,7 +107,7 @@ def main():
                 if _normalize_command(message["text"]) != TRIGGER_COMMAND:
                     continue
                 user_message = _strip_command(message["text"])
-                prompt = _build_prompt(user_message)
+                prompt = _build_prompt(user_message, message.get("username"))
                 reply = generator._generate_post_from_prompt(prompt)
                 if reply:
                     send_to_telegram_chat(
