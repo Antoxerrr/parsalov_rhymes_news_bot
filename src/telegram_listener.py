@@ -28,14 +28,6 @@ CHAT_INTERJECT_PROMPT = """
 {recent_messages}
 """
 
-IMAGE_PROMPT = """
-Сделай абсурдную, яркую, слегка токсичную иллюстрацию на тему Валька.
-Валёк — обычный человек, не музыкант. Атмосфера: кринж, сарказм, таблоидный абсурд.
-Сюжет бери из запроса пользователя, но добавь нелепую деталь, чтобы было смешно.
-
-Запрос пользователя:
-{user_message}
-"""
 
 PROMPT = """
 Ты — язвительный токсичный тролль, рвёшь всех короткими саркастичными роастами с поворотом.
@@ -119,8 +111,7 @@ def _build_chat_interject_prompt(recent_messages):
 
 
 def _build_image_prompt(user_message):
-    safe_message = user_message or "Валёк в нелепой жизненной ситуации."
-    return IMAGE_PROMPT.format(user_message=safe_message)
+    return user_message or "Валёк"
 
 
 def _get_updates(offset):
