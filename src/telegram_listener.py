@@ -191,8 +191,11 @@ def main():
                 history.append(f"{author}: {_sanitize_message(text)}")
 
                 if len(history) < MIN_HISTORY_FOR_INTERJECT:
+                    print("ℹ️ Skip interject: not enough history")
                     continue
-                if random.random() > INTERJECT_PROBABILITY:
+                roll = random.random()
+                if roll > INTERJECT_PROBABILITY:
+                    print(f"ℹ️ Skip interject: roll={roll:.3f}")
                     continue
 
                 recent_messages = "\n".join(history)
